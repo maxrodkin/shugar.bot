@@ -55,13 +55,7 @@ myCache3.set( 'Б',400);
 myCache3.set( 'Г',500);
 myCache3.set( 'Н',800);
 //дни недели
-const week_days_2 = [
-	['Пн:AM','Пн:PM','Вт:AM','Вт:PM'],
-	['Ср:AM','Ср:PM','Чт:AM','Чт:PM'],
-	['Пт:AM','Пт:PM','Сб:AM','Сб:PM'],
-	['Вс:AM','Вс:PM',' ',' '],
-	['Назад']
-];
+const week_days_2 = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 //дни недели
 const week_days = [
 	['Пн','Вт','Ср'],
@@ -217,9 +211,18 @@ var options = {
  rp(options)
     .then(function (data) {
 	var _ = require('lodash');
-	data.days.push('След.неделя');
-	data.days.push('Назад');
-	var week_days_from_url = _.chunk(data.days,3);
+	var n = new Date().getDay(); //eturns the day of the week (from 0 to 6) for the specified date. Sunday is 0, Monday is 1, and so on
+	if (n==0){n=7}; // номер дня недели. переводим из формата недели США, когда Вс = 0 день, в РФ , когда Вс = 7 день
+	const current_week_day= week_days_2 [n-1]; //текущий день в неделе кириллицей
+	const current_week_day_index= data.days.indexOf(current_week_day); //номер текущий день в неделе в списке из гуглтаблицы
+	//теперь нужно обрезать week_days_2 с текущего дня недели, чтобы в итоговом списке не было прошедших дней недели и пересечь с week_days_from_url - в итоге останутся доступные для записи текущий и будущие дни недели.
+	var cutted_week_days = week_days_2.slice(n-1);
+	var week_days_from_url = _.intersectionWith(cutted_week_days, data.days, _.isEqual);
+	week_days_from_url.push('След.неделя');
+	week_days_from_url.push('Назад');
+	
+	var week_days_from_url = _.chunk(week_days_from_url,3); //разбиваем массив на тетрады для удобства отображения в виде кнопок бота
+	//console.log('week_days_from_url',week_days_from_url);
 	const chatId = msg.chat.id;
 	myCache7.del( "chatId");
 	var opts = {
@@ -229,7 +232,7 @@ var options = {
 		})
 	};
 	bot.sendMessage(chatId,'Выберите день приема, затем время. После  этого вернитесь назад в основное меню и нажмите Записаться. Заказ будет отправлен администратору:', opts);
-
+/**/
 	  })
     .catch(function(err) {
       console.log(err);
