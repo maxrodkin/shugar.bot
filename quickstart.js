@@ -5,8 +5,8 @@ var google = require('googleapis');
 var googleAuth = require('google-auth-library');
 const _ = require('lodash');
 var moment = require('moment');
-moment().format();
-moment.locale('ru');
+//moment().format();
+moment.locale('ru', {week: {dow: 1}});
 const week_days_2 = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];//дни недели
 
 // If modifying these scopes, delete your previously saved credentials
@@ -29,15 +29,30 @@ fs.readFile('client_secret.json', function processClientSecrets(err, content) {
   ,'get_week_days':true
   ,'next_week':false
   }
-  , queryFreebusy);*/
+  , getDays);*/
   
-  authorize(
+  /*authorize(
   {"content":JSON.parse(content)
   ,'get_week_days':true
   ,'next_week':true//false
   }
-  , queryFreebusy);/**/
+  , getDays);*/
 
+  authorize(
+  {"content":JSON.parse(content)
+  ,'get_hours':true
+  ,'day':'Ср'
+  ,'next_week':false
+  }
+  , getHours);/**/
+  
+  /*authorize(
+  {"content":JSON.parse(content)
+  ,'get_hours':true
+  ,'day':'Чт'
+  ,'next_week':true//false
+  }
+  , getDays);*/  
   });
 
 /**
@@ -61,7 +76,8 @@ function authorize(params, callback) {
 	  getNewToken(oauth2Client, callback);
 	} else {
 	  oauth2Client.credentials = JSON.parse(token);
-	  callback(oauth2Client,params.get_week_days,params.next_week);
+	  if (params.get_week_days){callback(oauth2Client,params.get_week_days,params.next_week);}
+	  if (params.get_hours){callback(oauth2Client,params.get_hours,params.day,params.next_week);}
 	}
 	});
 }
@@ -121,63 +137,22 @@ function storeToken(token) {
  *
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
-function listEvents(auth) {
-  var calendar = google.calendar('v3');
-  calendar.events.list({
-    auth: auth,
-    calendarId: 'primary',
-    timeMin: (new Date()).toISOString(),
-    maxResults: 20,
-    singleEvents: true,
-    orderBy: 'startTime'
-  }, function(err, response) {
-    if (err) {
-      console.log('The API returned an error: ' + err);
-      return;
-    }
-    var events = response.items;
-    if (events.length == 0) {
-      console.log('No upcoming events found.');
-    } else {
-      console.log('Upcoming 20 events:');
-      for (var i = 0; i < events.length; i++) {
-        var event = events[i];
-        var start = event.start.dateTime || event.start.date;
-        var end = event.end.dateTime || event.end.date;
-        console.log('%s - %s', start,end, event.summary);
-      }
-    }
-  });
-}
-function addDays(date, days) {
-    var result = new Date(date);
-    result.setDate(result.getDate() + days);
-    return result;
-}
-function getLastSunday(d) {
-  var t = new Date(d);
-  t.setDate(t.getDate() - t.getDay());
-  return t;
-}
-function queryFreebusy(auth,get_week_days,next_week) {
+function getDays(auth,get_week_days,next_week) {
 	
-	var startOfWeek = moment().startOf('week').toDate();
-	var endOfWeek   = moment().endOf('week').toDate();
-//	console.log('endOfWeek',endOfWeek);
 	var calendar = google.calendar('v3');
 	var currentDate = moment();
-	//currentDate.setHours(currentDate.getHours()+3);//+3 - мск время
-	console.log('next_week?',next_week);
-	var currentDay = moment()//currentDate.getDate();//ищем  текущий день
-	var currentWeekSunday = moment().endOf('week');// getLastSunday(currentDate);//currentDate.getDate() - currentDate.getDay() +7;//ищем воскресение текущей недели
-	var nextWeekMonday = currentWeekSunday.add(1, 'days') //currentWeekMonday +7;//ищем понедельник следующей недели
-	var nextWeekSunday = currentWeekSunday.add(6, 'days')//addDays(currentWeekSunday,7);//ищем воскресение следующей недели
+//	console.log('next_week?',next_week);
+//	var currentDay = moment()//currentDate.getDate();//ищем  текущий день
+	var currentWeekSunday = moment().endOf('week').endOf('day');//ищем воскресение текущей недели
+	var nextWeekMonday = moment().endOf('week').add(1, 'days').startOf('day') ; //ищем понедельник следующей недели
+	var nextWeekSunday = moment().endOf('week').add(7, 'days').endOf('day');//ищем воскресение следующей недели
 	var start_Date = (next_week)?nextWeekMonday:currentDate;//currentDate
-	var start_Date_week_day=start_Date.day();
+	var start_Date_week_day=start_Date.weekday();
 	var end_Date = (next_week)?nextWeekSunday:currentWeekSunday;//nextWeekSundayDate
-	console.log('start_Date',start_Date);
-	console.log('end_Date',end_Date);/**/
-	
+//	console.log('currentWeekSunday',currentWeekSunday);
+//	console.log('currentWeekSunday',currentWeekSunday);
+//	console.log('start_Date',start_Date);
+//	console.log('end_Date',end_Date);/**/
 	calendar.events.list({
 		auth: auth,
 		calendarId: 'primary',
@@ -214,7 +189,7 @@ function queryFreebusy(auth,get_week_days,next_week) {
 			//console.log('key',key);
 			//console.log('days_with_busy_hours[key]',days_with_busy_hours[key]);
 			if (!days_with_busy_hours[key]){days_with_busy_hours[key]=0;}
-			//days_with_busy_hours[key] = days_with_busy_hours[key]+duration;
+			days_with_busy_hours[key] = days_with_busy_hours[key]+duration;
 			//console.log('Прием', 'число' , startDate, 'час', startHour, (isstartDateInCurrentWeek)? 'На этой неделе':'На следующей неделе' , week_days_2[startDay-1],'Длительность',duration);
 		  }
 		//console.log(JSON.stringify({'days_with_busy_hours':days_with_busy_hours}));
@@ -224,6 +199,70 @@ function queryFreebusy(auth,get_week_days,next_week) {
 			  } 
 		  }  
 		}
+		//console.log('start_Date_week_day', week_days_2[start_Date_week_day]);
 		console.log(JSON.stringify({'days':_.difference(_.drop(week_days_2,start_Date_week_day),busy_days)}));
+	});
+}
+
+function getHours(auth,get_hours,day,next_week) {
+	
+	var calendar = google.calendar('v3');
+	var currentDate = moment();
+	console.log('next_week?',next_week);
+	var Day_week_position = week_days_2.findIndex(x=>x==day);
+	var diff_currentDay_and_Day = moment().weekday()-Day_week_position;
+	var start_Date = moment().add(diff_currentDay_and_Day, 'days').startOf('day') ;
+	var end_Date = moment().add(diff_currentDay_and_Day, 'days').endOf('day') ;
+	console.log('Day',day);
+	console.log('Day_week_position',Day_week_position);
+	console.log('start_Date',start_Date);
+	console.log('end_Date',end_Date);/**/
+	calendar.events.list({
+		auth: auth,
+		calendarId: 'primary',
+		timeMin: start_Date.toDate().toISOString(),
+		timeMax: end_Date.toDate().toISOString(),
+		singleEvents: true,
+		orderBy: 'startTime'
+		}, function(err, response) {
+		if (err) {
+		  console.log('The API returned an error: ' + err);
+		  return;
+		}
+		var events = response.items;
+		var busy_days = [];
+		if (events.length == 0) {
+		  console.log('No upcoming events found.');
+		} else {
+		  //console.log('Upcoming '+events.length+' events:');
+		  var days_with_busy_hours = {};
+		  for (var i = 0; i < events.length; i++) {
+			var event = events[i];
+			var start = event.start.dateTime || event.start.date;
+			var end = event.end.dateTime || event.end.date;
+			var startDateTime = new Date(start);
+			var endDateTime = new Date(end);
+			var duration = (endDateTime - startDateTime)/3600000;
+			var startHour = startDateTime.getHours();
+			var endHour = endDateTime.getHours();
+			var startDate = startDateTime.getDate();
+			var startDay = startDateTime.getDay();if(startDay==0){startDay=7};//приводим вск к стандарту РФ
+			var end = event.end.dateTime || event.end.date;
+			var key = week_days_2[startDay-1];
+			//console.log('key',key);
+			//console.log('days_with_busy_hours[key]',days_with_busy_hours[key]);
+			if (!days_with_busy_hours[key]){days_with_busy_hours[key]=0;}
+			days_with_busy_hours[key] = days_with_busy_hours[key]+duration;
+			console.log('Прием', 'число' , startDate, 'час', startHour, (!next_week)? 'На этой неделе':'На следующей неделе' , week_days_2[startDay-1],'Длительность',duration);
+		  }
+		//console.log(JSON.stringify({'days_with_busy_hours':days_with_busy_hours}));
+		for (var objectKey in days_with_busy_hours){	
+		  if (days_with_busy_hours[objectKey]>=max_working_hours_per_day){//если занятых часов в дне более порога, то добавляем день в позностью занятые дни
+			  busy_days.push(objectKey);
+			  } 
+		  }  
+		}
+		//console.log('start_Date_week_day', week_days_2[start_Date_week_day]);
+		//console.log(JSON.stringify({'days':_.difference(_.drop(week_days_2,start_Date_week_day),busy_days)}));
 	});
 }
