@@ -9,8 +9,9 @@ function getRegex (regex_string){
 }
 
 // replace the value below with the Telegram token you receive from @BotFather
-//const token = '371210908:AAGYdl0gP3FqqT0S3d3GeCuJtvGV4S8pXCg'; //test
-const token = '418120660:AAGFcvlIok7YXDxe1F-C7LBloVm1SA908PQ'; //rodkin2bot
+//const token = '371210908:AAGYdl0gP3FqqT0S3d3GeCuJtvGV4S8pXCg'; //тест бот @rodkin_test_bot
+//const token = '418120660:AAGFcvlIok7YXDxe1F-C7LBloVm1SA908PQ'; //rodkin2bot
+const token = '436341722:AAFeMw-S3PN1iJcyoEgs88mv3y_G0ecJXDU'; // Аптека в ЖК Инно @pharmacy_inno_bot
 	const keyboard_0 = [
 		['Выбрать','Отказаться'],['Заказать']
 	];
@@ -24,7 +25,7 @@ var data_price = null;
 // Create a bot that uses 'polling' to fetch new updates
 const bot = new TelegramBot(token, {polling: true});
 
-// Matches "Записаться"
+// Matches "Заказать"
 //https://t.me/InnoShugaringOrders
 bot.onText(/Заказать/, (msg, match) => {
 	const chatId = msg.chat.id;
