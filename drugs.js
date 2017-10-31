@@ -112,7 +112,7 @@ function eraseOrder_function(msg_chat_id){
 
 const eraseOrder = (shouldCall) => (msg, match) => {
 	eraseOrder_function(msg.chat.id);
-	shouldCall && define_order_status(msg_chat_id);
+	shouldCall && define_order_status(msg.chat.id);
 	handleStart	(msg, match);
 }
 
