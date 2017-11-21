@@ -126,7 +126,7 @@ bot.onText(/Назад/, (msg, match) => {
 	var command = pullCommandFromHistory(msg);
 	//console.log('command = ',command);
 	if(command == 'Алфавитный указатель') {function_1(msg, match)}
-	else if(command == 'Купить') {function_2(msg, match)}
+	else if(command == 'Купить') {function_2(msg, match,'get_price2')}
 	else if(typeof(command) === 'undefined') {handleStart(msg, match)}
 	else {handleStart(msg, match)}
 });
@@ -195,7 +195,6 @@ function function_2(msg, match,_action){//Купить
 
 bot.onText(/Купить/, (msg, match) => {
 function_2(msg, match,'get_price2');
-//function_2(msg, match,'get_price0');
 });
 
 function get_items_buttons_from_price_items(){
