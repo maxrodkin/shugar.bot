@@ -27,7 +27,7 @@ const keyboard_2 = 	['Ок, беру!','Отказаться']//купить
 ;
 const keyboard_4 = 	['Назад']
 ;
-const keyboard_3 = 	['Алфавитный указатель'/*,'Поиск'*/,'Полный список'].concat(keyboard_4)//алфавитный индекс
+const keyboard_3 = 	['Алфавитный указатель','За 0 рублей!!'/*,'Поиск'*/,'Полный список'].concat(keyboard_4)//алфавитный индекс
 ;
 
 
@@ -45,6 +45,7 @@ var UserCurrentMenu_Cache = new NodeCache();
 var UserItemsForSale_Cache = new NodeCache();
 var CommandStack_Cache = new NodeCache();
 var price_items = null;
+var price_items0 = null;
  
 // Create a bot that uses 'polling' to fetch new updates
 const bot = new TelegramBot(token, {polling: true});
@@ -76,7 +77,7 @@ bot.onText(/Сдать на реализацию/, (msg, match) => {
 		})
 	};	
 	UserCurrentMenu_Cache.set(msg.chat.id,'Сдать на реализацию');
-	bot.sendMessage(msg.chat.id,'Напишите мне (и отправьте!) название, упаковку, дозировку, срок годности (что знаете), цену лекарства. Как все отправите мне, нажмите Предложить или Отказаться.', opts);
+	bot.sendMessage(msg.chat.id,'Напишите мне (И ОТПРАВЬТЕ, НАЖАВ Enter!) название, упаковку, дозировку, срок годности (что знаете), цену лекарства. Как все отправите мне, нажмите Предложить или Отказаться.', opts);
 });
 
 // Matches "Ок, беру!"
@@ -164,7 +165,7 @@ bot.onText(/Алфавитный указатель/, (msg, match) => {
 function_1(msg, match);
 });
 
-function function_2(msg, match){//Купить
+function function_2(msg, match,_action){//Купить
 //console.log('мы в Купить');
 	const chatId = msg.chat.id;
 	
@@ -172,7 +173,7 @@ function function_2(msg, match){//Купить
 	var options = {
 		uri: 'https://script.google.com/macros/s/AKfycbzwAifJfudQlJ46Uz7r_LjkUIq2sRq4yF9yfbOefeFs86t0QA/exec',
 		qs: {
-		  action:'get_price2'
+		  action:_action//'get_price2'
 		},
 		json: true
 	  };
@@ -193,7 +194,8 @@ function function_2(msg, match){//Купить
 }
 
 bot.onText(/Купить/, (msg, match) => {
-function_2(msg, match);
+function_2(msg, match,'get_price2');
+//function_2(msg, match,'get_price0');
 });
 
 function get_items_buttons_from_price_items(){
@@ -210,7 +212,6 @@ function get_items_buttons_from_price_items(){
 
 bot.onText(/Полный список/, (msg, match) => {
 	UserCurrentMenu_Cache.set(msg.chat.id,'Купить');
-	UserCurrentMenu_Cache.set(msg.chat.id,'Купить');
 	var price_items_items = _.map(price_items,function(price_item){return price_item;})  	
 	sendKeyboard2(msg,price_items_items);
 /*	get_items_buttons_from_price_items();
@@ -223,6 +224,13 @@ bot.onText(/Полный список/, (msg, match) => {
 	};
 	bot.sendMessage(msg.chat.id,'Выберите лекарство или подтвердите сделку. Заказ будет отправлен администратору:', opts);*/
 //});
+});
+
+bot.onText(/За 0 рублей!!/, (msg, match) => {
+	UserCurrentMenu_Cache.set(msg.chat.id,'Купить');
+	var price_items_items1 = _.map(price_items,function(price_item){return price_item;})  	
+	var price_items_items = _.filter(price_items_items1,function(price_item){return price_item.price<=0;})  	
+	sendKeyboard2(msg,price_items_items);
 });
 
 function sendKeyboard2(msg,_array) {
