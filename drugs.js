@@ -334,6 +334,7 @@ function all_msg_listener(msg){
 						+item.item+'\n'
 						+'Цена: '+price+' р.'+'\n'
 						+'Срок годности: '+moment(expiration).format('DD/MM/YYYY')+expiration_text+'\n'
+						+'Фармакологическая группа: '+item.pharma_group+'\n'
 						+'Примечание: '+item.note+'\n'
 						+'Добавьте или удалите препарат для заказа кнопками + и - :'+'\n'
 						,keyboard);
