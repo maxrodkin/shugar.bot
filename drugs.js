@@ -1,17 +1,16 @@
 ﻿const TelegramBot = require('node-telegram-bot-api');
 const rp = require('request-promise')  ;
 const moment = require('moment');
-var price_index = [];
-var price_items = [];
-var price_index_0 = [];
-var price_index_regex_string = '';//'abraca|dabra';
+
+
 var _ = require('lodash');
 	//var price_items_regex =getRegex('abraca|dabra'); // new RegExp(price_index_regex_string, "giu");
 
 function getRegex (regex_string){
 	return new RegExp(regex_string, "giu");
 }
-
+var price_index_regex_string = '';//'abraca|dabra';
+var pharma_groups_index_regex_string = '';//'abraca|dabra';
 // replace the value below with the Telegram token you receive from @BotFather
 //const token = '371210908:AAGYdl0gP3FqqT0S3d3GeCuJtvGV4S8pXCg'; //тест бот @rodkin_test_bot
 //const token = '418120660:AAGFcvlIok7YXDxe1F-C7LBloVm1SA908PQ'; //rodkin2bot
@@ -27,13 +26,8 @@ const keyboard_2 = 	['Ок, беру!','Отказаться']//купить
 ;
 const keyboard_4 = 	['Назад']
 ;
-const keyboard_3 = 	['Алфавитный указатель','За 0 рублей!!'/*,'Поиск'*/,'Полный список'].concat(keyboard_4)//алфавитный индекс
+const keyboard_3 = 	['Алфавитный указатель','За 0 рублей!!','По категориям','Полный список'].concat(keyboard_4)//алфавитный индекс
 ;
-
-
-
-//const all_keyboard = ["/start"].concat(keyboard_0).concat(keyboard_1).concat(keyboard_2).concat(keyboard_3).concat(keyboard_4);
-//const all_keyboard = (["/start"].concat(keyboard_0,keyboard_1,keyboard_2,keyboard_3,keyboard_4)).toString();
 
 const all_keyboard = ["/start"].concat(keyboard_0[0],keyboard_0[1],keyboard_1[0],keyboard_1[1],keyboard_2,keyboard_3,keyboard_4);
  
@@ -44,8 +38,13 @@ var myCache1 = new NodeCache();
 var UserCurrentMenu_Cache = new NodeCache();
 var UserItemsForSale_Cache = new NodeCache();
 var CommandStack_Cache = new NodeCache();
+
 var price_items = null;
 var price_items0 = null;
+var price_index = [];
+var price_items = [];
+var pharma_groups_index = [];
+var price_index_0 = [];
  
 // Create a bot that uses 'polling' to fetch new updates
 const bot = new TelegramBot(token, {polling: true});
@@ -165,10 +164,9 @@ bot.onText(/Алфавитный указатель/, (msg, match) => {
 function_1(msg, match);
 });
 
-function function_2(msg, match,_action){//Купить
+function function_2(msg, match,_action,_items,send_message){//Купить
 //console.log('мы в Купить');
 	const chatId = msg.chat.id;
-	
 //делаем rest запрос к скрипту гуглтаблицы	
 	var options = {
 		uri: 'https://script.google.com/macros/s/AKfycbzwAifJfudQlJ46Uz7r_LjkUIq2sRq4yF9yfbOefeFs86t0QA/exec',
@@ -180,61 +178,102 @@ function function_2(msg, match,_action){//Купить
 	rp(options)
 		.then(function (data) {
 			//price_index = _.chunk(_.keys(data.price),1);
-			price_items = data.price;
-			price_items = _.map(price_items,function(item){item.item_price = item.item+' '+item.price+' р.'; return item});
-			get_items_buttons_from_price_items();
+			var _items = data.price;
+			_items = _.map(_items,function(item){item.item_price = item.item+' '+item.price+' р.'; return item});
+			var res = get_items_buttons_from_price_items(_items,price_index,price_index_regex_string);
+			price_index = res[0]; price_index_regex_string = res[1]; 
+			price_items = _items;
 			const opts = {
 			reply_to_message_id: msg.message_id,
 			reply_markup: JSON.stringify({
 			keyboard: _.chunk(keyboard_3,1)
 			})
 		};
-		bot.sendMessage(chatId,'Выберите лекарство одним из способов 😊', opts);
+		if(send_message){bot.sendMessage(chatId,'Выберите лекарство одним из способов 😊', opts);}
+	});	
+}
+
+function function_get_pharma_groups(msg, match,_action,_items,send_message){//Купить
+//console.log('мы в Купить');
+	const chatId = msg.chat.id;
+//делаем rest запрос к скрипту гуглтаблицы	
+	var options = {
+		uri: 'https://script.google.com/macros/s/AKfycbzwAifJfudQlJ46Uz7r_LjkUIq2sRq4yF9yfbOefeFs86t0QA/exec',
+		qs: {
+		  action:_action//'get_pharma_groups'
+		},
+		json: true
+	  };
+	rp(options)
+		.then(function (data) {
+			//price_index = _.chunk(_.keys(data.price),1);
+			var _items = data.pharma_groups;
+			//_items = _.map(_items,function(item){item.item_price = item.item+' '+item.price+' р.'; return item});
+			var res = get_items_buttons_from_pharma_groups_index(_items,pharma_groups_index,pharma_groups_index_regex_string);
+			pharma_groups_index = res[0]; pharma_groups_index_regex_string = res[1];
+			pharma_groups_index.unshift(keyboard_4);
+//			console.log(pharma_groups_index);
+			const opts = {
+			reply_to_message_id: msg.message_id,
+			reply_markup: JSON.stringify({
+				keyboard: pharma_groups_index
+			})
+		};
+		if(send_message){bot.sendMessage(chatId,'Выберите группу лекарств 😊', opts);}
 	});	
 }
 
 bot.onText(/Купить/, (msg, match) => {
-function_2(msg, match,'get_price2');
+	var send_message = true;
+	function_2(msg, match,'get_price2',price_items,send_message);
+
+
 });
 
-function get_items_buttons_from_price_items(){
+function get_items_buttons_from_price_items(_items,_index,_index_regex_string){
 //	price_index = _.chunk(_.keys(price_items),1);
-	var price_items_array = Object.keys(price_items).map(function(key) {return [price_items[key]];});
-	//console.log('price_items_array',price_items_array);
-	price_index_0 = price_items_array.map(function(obj){return obj[0].item}); 
-	price_index = _.chunk(price_index_0,1);
-	//console.log('price_index',price_index);
-	price_index_regex_string = price_index.toString().replace(/,/g,'|');
-	//console.log(price_index_regex_string);
+	var price_items_array = Object.keys(_items).map(function(key) {return [_items[key]];});
+	_index_0 = price_items_array.map(function(obj){return obj[0].item}); 
+	_index = _.chunk(_index_0,1);
+	_index_regex_string = _index.toString().replace(/,/g,'|');
+	return [_index, _index_regex_string];
 }
 
+function get_items_buttons_from_pharma_groups_index(_items,_index,_index_regex_string){
+	var _items_array = Object.keys(_items).map(function(key) {return [_items[key]];});
+//	_index_0 = _items_array.map(function(obj){return obj[0].item}); 
+//	_index = _.chunk(_items_array,1);
+	_index = _items_array;
+	_index_regex_string = _index.toString().replace(/,/g,'|');
+	return [_index,_index_regex_string];
+}
 
 bot.onText(/Полный список/, (msg, match) => {
 	UserCurrentMenu_Cache.set(msg.chat.id,'Купить');
 	var price_items_items = _.map(price_items,function(price_item){return price_item;})  	
-	sendKeyboard2(msg,price_items_items);
-/*	get_items_buttons_from_price_items();
-	price_index.unshift((keyboard_2.concat(keyboard_4)));	
-	const opts = {
-		reply_to_message_id: msg.message_id,
-		reply_markup: JSON.stringify({
-		keyboard: price_index
-		})
-	};
-	bot.sendMessage(msg.chat.id,'Выберите лекарство или подтвердите сделку. Заказ будет отправлен администратору:', opts);*/
-//});
+	sendKeyboard2(msg,price_items_items, true);
 });
 
 bot.onText(/За 0 рублей!!/, (msg, match) => {
 	UserCurrentMenu_Cache.set(msg.chat.id,'Купить');
 	var price_items_items1 = _.map(price_items,function(price_item){return price_item;})  	
 	var price_items_items = _.filter(price_items_items1,function(price_item){return price_item.price<=0;})  	
-	sendKeyboard2(msg,price_items_items);
+	sendKeyboard2(msg,price_items_items, true);
 });
 
-function sendKeyboard2(msg,_array) {
-	const array1= _array.map(function(item){return item.item+' '+item.price+' р.'});
-	const buttons = _.chunk(array1,1);
+bot.onText(/По категориям/, (msg, match) => {
+	UserCurrentMenu_Cache.set(msg.chat.id,'Купить');
+	function_get_pharma_groups(msg, match,'get_pharma_groups',pharma_groups_index,true);
+//	sendKeyboard2(msg,pharma_groups_index,false);
+});
+
+function sendKeyboard2(msg,_array,add_price_to_buttons) {
+	if (add_price_to_buttons){
+		const array1= _array.map(function(item){return item.item+' '+item.price+' р.'});
+		var buttons = _.chunk(array1,1);}
+	else {
+		buttons = _array;
+	}
 	buttons.unshift((keyboard_2.concat(keyboard_4)));
 	const opts = {
 		reply_to_message_id: msg.message_id,
@@ -290,11 +329,12 @@ function all_msg_listener(msg){
 //				var price_items_keys = price_index_0;      //получаем массив из названий препаратов и цены чз пробел
 //				var price_items_items_prices = _.map(price_items,function(obj){return obj.item});
 				var price_items_filtered_by_first_letter = _.filter(price_items,function(price_item){return price_item.item.substr(0,1) == msg.text;}) // фильтруем все товары , начинающеся с буквы 	
-				sendKeyboard2(msg,price_items_filtered_by_first_letter);
+				sendKeyboard2(msg,price_items_filtered_by_first_letter, true);
 				pushCommandToHistory(msg);
 				}
 				else{ //многа букав - значит мы нажали кнопку с лекарством
 					const price_items_regex =getRegex(price_index_regex_string);
+					const pharma_groups_regex =getRegex(pharma_groups_index_regex_string);
 					//console.log('Ищем строку=', msg.text);
 					//console.log('Regexp = ',price_items_regex);
 					//если покупаем
@@ -338,8 +378,13 @@ function all_msg_listener(msg){
 						+'Примечание: '+item.note+'\n'
 						+'Добавьте или удалите препарат для заказа кнопками + и - :'+'\n'
 						,keyboard);
+						bot.sendMessage(msg.chat.id,'Выберите лекарство или подтвердите сделку или откажитесь. '+define_order_status(msg.chat.id));
 					}
-					bot.sendMessage(msg.chat.id,'Выберите лекарство или подтвердите сделку или откажитесь. '+define_order_status(msg.chat.id));
+					else if (pharma_groups_regex.exec(msg.text)){  //ищем название нажатой кнтопки в списке фарм групп. если нажали кнопку с фарм группой 
+						var price_items_filtered_by_pharma_group = _.filter(price_items,function(price_item){return price_item.pharma_group.search(msg.text)> -1;}) // фильтруем все товары , начинающеся с буквы 	
+						sendKeyboard2(msg,price_items_filtered_by_pharma_group, true);
+						pushCommandToHistory(msg);
+					}
 				}
 			}
 	}
@@ -348,7 +393,7 @@ function all_msg_listener(msg){
 		var price_items_filtered_by_first_letter = price_items_keys.filter(function(price_item){return price_item.substr(0,1) == msg.text;}) // фильтруем все товары , начинающеся с буквы 	
 		//console.log(price_items_keys);
 		//console.log(price_items_filtered_by_first_letter);
-		sendKeyboard2(msg,price_items_filtered_by_first_letter);
+		sendKeyboard2(msg,price_items_filtered_by_first_letter), true;
 		//CommandStack_Cache.set(msg.chat.id, (!Array.isArray(CommandStack_Cache.get(msg.chat.id)))?[]:CommandStack_Cache.get(msg.chat.id).push(msg.text));//если это команда, то пишем команду в стек команд
 		pushCommandToHistory(msg);
 	}
