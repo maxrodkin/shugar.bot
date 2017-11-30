@@ -358,16 +358,36 @@ function all_msg_listener(msg){
 						var price = (expired)?0:item.price;
 						var code = item.code;
 						// инлайн кнопки + и - для заказа
-						var keyboardStr = JSON.stringify({
+						if (item.url>'') 
+						{
+						var keyboardObj = 
+						{
+						  inline_keyboard: [
+							[
+								{text:'+',callback_data:JSON.stringify({'chat_id':msg.chat.id,'code':code,'action':'+'})},
+								{text:'-',callback_data:JSON.stringify({'chat_id':msg.chat.id,'code':code,'action':'-'})},
+								{text:'H',url:item.url}
+							]
+						  ]
+						};
+							
+						}
+						else {
+						var keyboardObj = 
+						{
 						  inline_keyboard: [
 							[
 							  {text:'+',callback_data:JSON.stringify({'chat_id':msg.chat.id,'code':code,'action':'+'})},
 							  {text:'-',callback_data:JSON.stringify({'chat_id':msg.chat.id,'code':code,'action':'-'})}
 							]
 						  ]
-						});
+						};
+							
+						}
+						//var keyboardStr = JSON.stringify(keyboardObj);
 
-						var keyboard = {reply_markup: JSON.parse(keyboardStr)};						
+//						var keyboard = {disable_web_page_preview:true, reply_markup: JSON.parse(keyboardStr)};						
+						var keyboard = {disable_web_page_preview:true, reply_markup: keyboardObj};						
 						
 						bot.sendMessage(msg.chat.id, 
 						'ПРЕПАРАТ:'+'\n'
@@ -375,6 +395,7 @@ function all_msg_listener(msg){
 						+'Цена: '+price+' р.'+'\n'
 						+'Срок годности: '+moment(expiration).format('DD/MM/YYYY')+expiration_text+'\n'
 						+'Фармакологическая группа: '+item.pharma_group+'\n'
+						//+'Ссылка на описание: '+item.url+'\n'
 						+'Примечание: '+item.note+'\n'
 						+'Добавьте или удалите препарат для заказа кнопками + и - :'+'\n'
 						,keyboard);
