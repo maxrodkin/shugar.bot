@@ -1,11 +1,10 @@
-//запрашиваем расписание из гуглкалендаря или из гуглтаблиц
-var request_schedule_from_google_calendar = false;
-request_schedule_from_google_calendar = true;
-
 const TelegramBot = require('node-telegram-bot-api');
 const rp = require('request-promise')  ;
 const google_calendar_request = require('./google_calendar_request');
 const _ = require('lodash');
+const NodeCache = require( "node-cache" );
+//запрашиваем расписание из гуглкалендаря или из гуглтаблиц
+var request_schedule_from_google_calendar = true;
 
 // replace the value below with the Telegram token you receive from @BotFather 
 const token = process.argv[2];
@@ -19,7 +18,7 @@ const token = process.argv[2];
 
 	const keyboard = [];
 //БД в памяти 	
-const NodeCache = require( "node-cache" );
+
 const myCache = new NodeCache();
 const myCache2 = new NodeCache();
 const myCache3 = new NodeCache();
@@ -30,58 +29,10 @@ const myCache7 = new NodeCache();//флаг след.недели
 
 //дни недели
 const week_days_2 = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
-//дни недели
-const week_days = [
-	['Пн','Вт','Ср'],
-	['Чт','Пт','Сб'],
-	['Вс','Назад']
-];
-//часы приема
-const day_hours = [
-	['До обеда'],
-	['После обеда']
-];
-//сеансы приема
-myCache4.set( 'Пн:AM','Понедельник до обеда');
-myCache4.set( 'Вт:AM','Вторник до обеда');
-myCache4.set( 'Ср:AM','Среда до обеда');
-myCache4.set( 'Чт:AM','Четверг до обеда');
-myCache4.set( 'Пт:AM','Пятница до обеда');
-myCache4.set( 'Сб:AM','Суббота до обеда');
-myCache4.set( 'Вс:AM','Воскресенье до обеда');
-myCache4.set( 'Пн:PM','Понедельник после обеда');
-myCache4.set( 'Вт:PM','Вторник после обеда');
-myCache4.set( 'Ср:PM','Среда после обеда');
-myCache4.set( 'Чт:PM','Четверг после обеда');
-myCache4.set( 'Пт:PM','Пятница после обеда');
-myCache4.set( 'Сб:PM','Суббота после обеда');
-myCache4.set( 'Вс:PM','Воскресенье после обеда');
-//'','','',''],
-/*
-	['ПнПн:AM','Вт'],
-	['Ср',	'Чт'],
-	['Пт',	'Сб'],
-	['Вс','Назад']
-		*/
 
 // Create a bot that uses 'polling' to fetch new updates
 const bot = new TelegramBot(token, {polling: true});
 
-// // Matches "/echo [whatever]"
-// bot.onText(/\/echo (.+)/, (msg, match) => {
-  // // 'msg' is the received Message from Telegram
-  // // 'match' is the result of executing the regexp above on the text content
-  // // of the message
-
-  // const chatId = msg.chat.id;
-  // const resp = match[1]; // the captured "whatever"
-
-  // // send back the matched "whatever" to the chat
-  // bot.sendMessage(chatId, resp);
-// });
-
-// Matches "Записаться"
-//https://t.me/InnoShugaringOrders
 bot.onText(/Записаться/, (msg, match) => {
 	const chatId = msg.chat.id;
 	//const price_img = new inputMediaUploadedPhoto('C:\Users\admin\Pictures\pricelist.jpg');
@@ -159,51 +110,6 @@ bot.onText(/Выбор услуг/, (msg, match) => {
 
 });
 
-//делаем rest запрос к скрипту гуглтаблицы	//deprecared: подлежит замене на запрос в гуглкалендарь
-function bot_onText_Request_to_google_sheet(msg,AdditionalButtons){
-	var options = {
-		uri: 'https://script.google.com/macros/s/AKfycbx2k0kmZGPabdMgoeULgb4WKS6XjLQGWn6VCSOtrRqY1MjYtsk/exec',
-		qs: {
-		  get_week_days:true
-		},
-		json: true
-	};
-	rp(options)
-	.then(function (data) {
-		//в data json объект со свободными днями недели	
-		//deprecared: подлежит замене на запрос в гуглкалендарь	
-		var _ = require('lodash');
-		var n = new Date().getDay(); //eturns the day of the week (from 0 to 6) for the specified date. Sunday is 0, Monday is 1, and so on
-		if (n==0){n=7}; // номер дня недели. переводим из формата недели США, когда Вс = 0 день, в РФ , когда Вс = 7 день
-		const current_week_day= week_days_2 [n-1]; //текущий день в неделе кириллицей
-		const current_week_day_index= data.days.indexOf(current_week_day); //номер текущий день в неделе в списке из гуглтаблицы
-		//теперь нужно обрезать week_days_2 с текущего дня недели, чтобы в итоговом списке не было прошедших дней недели и пересечь с week_days_from_url - в итоге останутся доступные для записи текущий и будущие дни недели.
-		var cutted_week_days = week_days_2.slice(n-1);
-
-		var week_days_from_url = _.intersectionWith(cutted_week_days, data.days, _.isEqual);
-		if (AdditionalButtons){for(var i=0; i<AdditionalButtons.length;i++){week_days_from_url.push(AdditionalButtons[i]);}}
-//		week_days_from_url.push('След.неделя');
-		week_days_from_url.push('Назад');
-
-		var week_days_from_url = _.chunk(week_days_from_url,3); //разбиваем массив на тетрады для удобства отображения в виде кнопок бота
-		//console.log('week_days_from_url',week_days_from_url);
-		const chatId = msg.chat.id;
-		myCache7.del( "chatId");
-		var opts = {
-			reply_to_message_id: msg.message_id,
-			reply_markup: JSON.stringify({
-			keyboard: week_days_from_url
-			})
-		};
-		bot.sendMessage(chatId,'Выберите день приема, затем время. После  этого вернитесь назад в основное меню и нажмите Записаться. Заказ будет отправлен администратору:', opts);
-
-	  })
-	.catch(function(err) {
-		console.log(err);
-	});
-	
-}
-
 function bot_onText_Request_to_google_calendar(params,AdditionalButtons){  //делаем rest запрос в гуглкалендарь
 	if (params.next_week){myCache7.set( "chatId", true );} else {myCache7.del( "chatId");}//запоминаем признак следующей недели
 	google_calendar_request.request({next_week:params.next_week,get_hours:params.get_hours,day:params.day},function(week_days_or_hours_from_url){
@@ -274,37 +180,6 @@ bot.onText(/(..:.M)/, (msg, match) => {
 // Matches день ...
 bot.onText(/(Пн|Вт|Ср|Чт|Пт|Сб|Вс)/, (msg, match) => {
 	myCache5.set( "chatId", match[1] );
-//делаем rest запрос к скрипту гуглтаблицы	//deprecared: подлежит замене на запрос в гуглкалендарь
-/*	var qs = {
-      get_hours:true,
-	  day:match[1]
-    };
-	if (myCache7.get("chatId")){qs['next_week']=true;} //если есть накопленый признак след.неделя, то запрос делаем на след неделю
-	var options = {
-    uri: 'https://script.google.com/macros/s/AKfycbx2k0kmZGPabdMgoeULgb4WKS6XjLQGWn6VCSOtrRqY1MjYtsk/exec',
-    qs: qs,
-    json: true
-  };
-  
- rp(options)
-    .then(function (data) {
-	var _ = require('lodash');
-	var array_hours=_.values(data)[0];
-	array_hours.push('Назад');
-	const hours_from_url = _.chunk(array_hours,3);
-	const chatId = msg.chat.id;
-	const opts = {
-		reply_to_message_id: msg.message_id,
-		reply_markup: JSON.stringify({
-		keyboard: hours_from_url
-		})
-	};
-	bot.sendMessage(chatId,'Выберите, с которого часа прием.', opts);
-
-	  })
-    .catch(function(err) {
-      console.log(err);
-    });	*/
 	bot_onText_Request_to_google_calendar({msg:msg,next_week:((myCache7.get("chatId"))?true:false),get_hours:true,day:match[1]});
 });
 

@@ -12,7 +12,7 @@ function getRegex (regex_string){
 var price_index_regex_string = '';//'abraca|dabra';
 var pharma_groups_index_regex_string = '';//'abraca|dabra';
 // replace the value below with the Telegram token you receive from @BotFather
-const token = '545627142:AAEOj8dODcFvk-JibJIbuvcb__JM-Gg6C48'; //@maxrodkin1bot
+const token = process.argv[2];
 const keyboard_0 = [//топ меню
 	['Купить']
 	,['Сдать на реализацию']
