@@ -12,9 +12,7 @@ function getRegex (regex_string){
 var price_index_regex_string = '';//'abraca|dabra';
 var pharma_groups_index_regex_string = '';//'abraca|dabra';
 // replace the value below with the Telegram token you receive from @BotFather
-//const token = '371210908:AAGYdl0gP3FqqT0S3d3GeCuJtvGV4S8pXCg'; //тест бот @rodkin_test_bot
-//const token = '418120660:AAGFcvlIok7YXDxe1F-C7LBloVm1SA908PQ'; //rodkin2bot
-const token = '436341722:AAFeMw-S3PN1iJcyoEgs88mv3y_G0ecJXDU'; // Аптека в ЖК Инно @pharmacy_inno_bot
+const token = '545627142:AAEOj8dODcFvk-JibJIbuvcb__JM-Gg6C48'; //@maxrodkin1bot
 const keyboard_0 = [//топ меню
 	['Купить']
 	,['Сдать на реализацию']
